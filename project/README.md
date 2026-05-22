@@ -14,3 +14,5 @@ A MERN stack application that converts audio into text using AI Speech-to-Text A
 - Express.js
 - MongoDB
 - OpenAI Whisper API
+
+Project by Shaurya
