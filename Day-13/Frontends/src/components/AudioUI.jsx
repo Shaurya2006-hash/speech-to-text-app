@@ -38,6 +38,9 @@ function AudioUI({ session }) {
   const recognitionRef =
     useRef(null);
 
+  const isLiveRef =
+    useRef(false);
+
   // ==========================================
   // SPEECH RECOGNITION
   // ==========================================
@@ -63,6 +66,9 @@ function AudioUI({ session }) {
     recognition.interimResults = true;
     recognition.lang = "en-US";
 
+    // ==========================================
+    // RESULT
+    // ==========================================
     recognition.onresult =
       (event) => {
 
@@ -80,10 +86,13 @@ function AudioUI({ session }) {
         }
 
         setTranscription(
-          liveText
+          liveText.trim()
         );
       };
 
+    // ==========================================
+    // ERROR
+    // ==========================================
     recognition.onerror =
       (event) => {
 
@@ -115,17 +124,30 @@ function AudioUI({ session }) {
         }
       };
 
+    // ==========================================
+    // AUTO RESTART ONLY IF LIVE
+    // ==========================================
     recognition.onend = () => {
 
-      if (isLive) {
+      console.log(
+        "Recognition Ended"
+      );
+
+      if (
+        isLiveRef.current
+      ) {
+
+        console.log(
+          "Restarting Recognition..."
+        );
 
         try {
 
           recognition.start();
 
-        } catch (error) {
+        } catch (err) {
 
-          console.log(error);
+          console.log(err);
 
         }
       }
@@ -134,7 +156,17 @@ function AudioUI({ session }) {
     recognitionRef.current =
       recognition;
 
-  }, [isLive]);
+    return () => {
+
+      if (
+        recognitionRef.current
+      ) {
+
+        recognitionRef.current.stop();
+      }
+    };
+
+  }, []);
 
   // ==========================================
   // FILE CHANGE
@@ -190,16 +222,19 @@ function AudioUI({ session }) {
   const startLiveTranscription =
     () => {
 
-      setError("");
-      setSuccess("");
-
       try {
 
-        recognitionRef.current.start();
+        setError("");
+        setSuccess("");
+
+        setTranscription("");
+
+        isLiveRef.current =
+          true;
 
         setIsLive(true);
 
-        setTranscription("");
+        recognitionRef.current.start();
 
         setSuccess(
           "Live transcription started"
@@ -218,25 +253,35 @@ function AudioUI({ session }) {
   const stopLiveTranscription =
     async () => {
 
-      if (
-        recognitionRef.current
-      ) {
+      try {
 
-        recognitionRef.current.stop();
+        isLiveRef.current =
+          false;
+
+        setIsLive(false);
+
+        if (
+          recognitionRef.current
+        ) {
+
+          recognitionRef.current.stop();
+        }
+
+        if (
+          transcription.trim()
+        ) {
+
+          await saveLiveTranscription();
+        }
+
+        setSuccess(
+          "Live transcription saved successfully"
+        );
+
+      } catch (error) {
+
+        console.log(error);
       }
-
-      setIsLive(false);
-
-      if (
-        transcription.trim()
-      ) {
-
-        await saveLiveTranscription();
-      }
-
-      setSuccess(
-        "Live transcription saved successfully"
-      );
     };
 
   // ==========================================
@@ -332,7 +377,8 @@ function AudioUI({ session }) {
           onClick={
             startLiveTranscription
           }
-          className="bg-gradient-to-r from-purple-500 to-blue-500 text-white py-4 rounded-2xl w-full font-bold"
+          disabled={isLive}
+          className="bg-gradient-to-r from-purple-500 to-blue-500 text-white py-4 rounded-2xl w-full font-bold disabled:opacity-50"
         >
           🎤 Start Live
         </button>
@@ -341,7 +387,8 @@ function AudioUI({ session }) {
           onClick={
             stopLiveTranscription
           }
-          className="bg-slate-700 text-white py-4 rounded-2xl w-full font-bold"
+          disabled={!isLive}
+          className="bg-slate-700 text-white py-4 rounded-2xl w-full font-bold disabled:opacity-50"
         >
           ⏹ Stop Live
         </button>
@@ -358,57 +405,40 @@ function AudioUI({ session }) {
 
       {/* ERROR */}
       {error && (
-
         <div className="mt-6 bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-2xl">
-
           {error}
-
         </div>
-
       )}
 
       {/* SUCCESS */}
       {success && (
-
         <div className="mt-4 bg-green-500/10 border border-green-500/30 text-green-400 p-4 rounded-2xl">
-
           {success}
-
         </div>
-
       )}
 
       {/* LOADING */}
       {loading && (
-
         <div className="flex justify-center mt-8">
-
           <div className="animate-spin rounded-full h-14 w-14 border-b-4 border-cyan-500"></div>
-
         </div>
-
       )}
 
       {/* TRANSCRIPTION */}
       <div className="mt-10 bg-slate-800/70 border border-cyan-500/20 p-8 rounded-3xl">
 
         <h2 className="text-3xl font-black text-cyan-400 mb-5">
-
           Current Transcription
-
         </h2>
 
         <p className="text-gray-300 text-lg">
-
           {transcription ||
             "Start speaking or upload audio..."}
-
         </p>
 
       </div>
 
     </div>
-
   );
 }
 
