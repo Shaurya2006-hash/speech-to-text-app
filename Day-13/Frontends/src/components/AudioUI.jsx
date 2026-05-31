@@ -1,4 +1,3 @@
-
 import {
   useState,
   useRef,
@@ -9,9 +8,6 @@ import axios from "axios";
 
 function AudioUI({ session }) {
 
-  // ==========================================
-  // BACKEND URL
-  // ==========================================
   const API_URL =
     "https://speech-to-text-app-y4la.onrender.com";
 
@@ -27,9 +23,6 @@ function AudioUI({ session }) {
   const [loading, setLoading] =
     useState(false);
 
-  const [recording, setRecording] =
-    useState(false);
-
   const [isLive, setIsLive] =
     useState(false);
 
@@ -42,12 +35,6 @@ function AudioUI({ session }) {
   // ==========================================
   // REFS
   // ==========================================
-  const mediaRecorderRef =
-    useRef(null);
-
-  const audioChunksRef =
-    useRef([]);
-
   const recognitionRef =
     useRef(null);
 
@@ -67,96 +54,67 @@ function AudioUI({ session }) {
       );
 
       return;
-
     }
 
     const recognition =
       new SpeechRecognition();
 
     recognition.continuous = true;
-
     recognition.interimResults = true;
-
     recognition.lang = "en-US";
 
-    // ==========================================
-    // LIVE TRANSCRIPTION
-    // ==========================================
-    recognition.onresult = (
-      event
-    ) => {
+    recognition.onresult =
+      (event) => {
 
-      let liveText = "";
+        let liveText = "";
 
-      for (
-        let i = 0;
-        i < event.results.length;
-        i++
-      ) {
+        for (
+          let i = 0;
+          i < event.results.length;
+          i++
+        ) {
 
-        liveText +=
-          event.results[i][0]
-            .transcript + " ";
+          liveText +=
+            event.results[i][0]
+              .transcript + " ";
+        }
 
-      }
+        setTranscription(
+          liveText
+        );
+      };
 
-      setTranscription(
-        liveText
-      );
+    recognition.onerror =
+      (event) => {
 
-    };
-
-    // ==========================================
-    // ERRORS
-    // ==========================================
-    recognition.onerror = (
-      event
-    ) => {
-
-      console.log(
-        "Speech Error:",
-        event.error
-      );
-
-      if (
-        event.error === "aborted"
-      ) {
-
-        return;
-
-      }
-
-      if (
-        event.error ===
-        "not-allowed"
-      ) {
-
-        setError(
-          "Microphone permission denied."
+        console.log(
+          "Speech Error:",
+          event.error
         );
 
-      } else if (
-        event.error ===
-        "no-speech"
-      ) {
+        if (
+          event.error === "aborted"
+        ) {
+          return;
+        }
 
-        setError(
-          "No speech detected."
-        );
+        if (
+          event.error ===
+          "not-allowed"
+        ) {
 
-      } else {
+          setError(
+            "Microphone permission denied."
+          );
 
-        setError(
-          "Speech recognition failed."
-        );
+        } else {
 
-      }
+          setError(
+            "Speech recognition failed."
+          );
+        }
+      };
 
-    };
-
-    // ==========================================
-    // AUTO RESTART LIVE
-    // ==========================================
     recognition.onend = () => {
 
       if (isLive) {
@@ -170,9 +128,7 @@ function AudioUI({ session }) {
           console.log(error);
 
         }
-
       }
-
     };
 
     recognitionRef.current =
@@ -183,154 +139,50 @@ function AudioUI({ session }) {
   // ==========================================
   // FILE CHANGE
   // ==========================================
-  const handleFileChange = (
-    e
-  ) => {
+  const handleFileChange =
+    (e) => {
 
-    const file =
-      e.target.files[0];
+      const file =
+        e.target.files[0];
 
-    if (!file) return;
+      if (!file) return;
 
-    const allowedTypes = [
-      "audio/mpeg",
-      "audio/wav",
-      "audio/webm",
-      "audio/ogg",
-    ];
+      setAudioFile(file);
 
-    if (
-      !allowedTypes.includes(
-        file.type
-      )
-    ) {
-
-      setError(
-        "Only MP3, WAV, WEBM and OGG are allowed."
+      setSuccess(
+        "Audio selected successfully"
       );
 
-      return;
-
-    }
-
-    setAudioFile(file);
-
-    setError("");
-
-    setSuccess(
-      "Audio selected successfully"
-    );
-
-  };
+      setError("");
+    };
 
   // ==========================================
-  // START RECORDING
+  // SAVE LIVE TRANSCRIPTION
   // ==========================================
-  const startRecording =
+  const saveLiveTranscription =
     async () => {
 
       try {
 
-        setError("");
+        await axios.post(
+          `${API_URL}/api/save-live`,
+          {
+            user_id:
+              session.user.id,
 
-        setSuccess("");
-
-        const stream =
-          await navigator.mediaDevices.getUserMedia(
-            {
-              audio: true,
-            }
-          );
-
-        const mediaRecorder =
-          new MediaRecorder(
-            stream
-          );
-
-        mediaRecorderRef.current =
-          mediaRecorder;
-
-        audioChunksRef.current =
-          [];
-
-        mediaRecorder.ondataavailable =
-          (event) => {
-
-            if (
-              event.data.size > 0
-            ) {
-
-              audioChunksRef.current.push(
-                event.data
-              );
-
-            }
-
-          };
-
-        mediaRecorder.onstop =
-          () => {
-
-            const audioBlob =
-              new Blob(
-                audioChunksRef.current,
-                {
-                  type:
-                    "audio/webm",
-                }
-              );
-
-            const file =
-              new File(
-                [audioBlob],
-                "recording.webm",
-                {
-                  type:
-                    "audio/webm",
-                }
-              );
-
-            setAudioFile(file);
-
-            setSuccess(
-              "Recording completed successfully"
-            );
-
-          };
-
-        mediaRecorder.start();
-
-        setRecording(true);
+            transcription_text:
+              transcription,
+          }
+        );
 
       } catch (error) {
 
-        console.log(error);
-
-        setError(
-          "Unable to access microphone."
+        console.log(
+          "Save Live Error:",
+          error
         );
-
       }
-
     };
-
-  // ==========================================
-  // STOP RECORDING
-  // ==========================================
-  const stopRecording = () => {
-
-    if (
-      mediaRecorderRef.current &&
-      recording
-    ) {
-
-      mediaRecorderRef.current.stop();
-
-      setRecording(false);
-
-    }
-
-  };
 
   // ==========================================
   // START LIVE
@@ -339,32 +191,15 @@ function AudioUI({ session }) {
     () => {
 
       setError("");
-
       setSuccess("");
-
-      if (
-        !recognitionRef.current
-      ) {
-
-        setError(
-          "Speech recognition not supported."
-        );
-
-        return;
-
-      }
-
-      if (isLive) {
-
-        return;
-
-      }
 
       try {
 
         recognitionRef.current.start();
 
         setIsLive(true);
+
+        setTranscription("");
 
         setSuccess(
           "Live transcription started"
@@ -374,38 +209,38 @@ function AudioUI({ session }) {
 
         console.log(error);
 
-        setError(
-          "Unable to start live transcription."
-        );
-
       }
-
     };
 
   // ==========================================
   // STOP LIVE
   // ==========================================
   const stopLiveTranscription =
-    () => {
+    async () => {
 
       if (
         recognitionRef.current
       ) {
 
         recognitionRef.current.stop();
-
       }
 
       setIsLive(false);
 
-      setSuccess(
-        "Live transcription stopped"
-      );
+      if (
+        transcription.trim()
+      ) {
 
+        await saveLiveTranscription();
+      }
+
+      setSuccess(
+        "Live transcription saved successfully"
+      );
     };
 
   // ==========================================
-  // UPLOAD AUDIO
+  // AUDIO UPLOAD
   // ==========================================
   const handleUpload =
     async () => {
@@ -413,20 +248,15 @@ function AudioUI({ session }) {
       if (!audioFile) {
 
         setError(
-          "Please upload or record audio first."
+          "Please select an audio file."
         );
 
         return;
-
       }
 
       try {
 
         setLoading(true);
-
-        setError("");
-
-        setSuccess("");
 
         const formData =
           new FormData();
@@ -465,30 +295,16 @@ function AudioUI({ session }) {
 
         console.log(error);
 
-        if (
-          error.response
-        ) {
-
-          setError(
-            error.response.data
-              .message ||
-              "Server error occurred."
-          );
-
-        } else {
-
-          setError(
-            "Backend server is not running."
-          );
-
-        }
+        setError(
+          error?.response?.data
+            ?.message ||
+            "Server Error"
+        );
 
       } finally {
 
         setLoading(false);
-
       }
-
     };
 
   return (
@@ -509,37 +325,8 @@ function AudioUI({ session }) {
 
       </div>
 
-      {/* RECORD */}
+      {/* LIVE BUTTONS */}
       <div className="flex gap-5">
-
-        {!recording ? (
-
-          <button
-            onClick={
-              startRecording
-            }
-            className="bg-green-500 hover:bg-green-600 text-white py-4 rounded-2xl w-full font-bold"
-          >
-            🎙 Start Recording
-          </button>
-
-        ) : (
-
-          <button
-            onClick={
-              stopRecording
-            }
-            className="bg-red-500 hover:bg-red-600 text-white py-4 rounded-2xl w-full font-bold"
-          >
-            ⏹ Stop Recording
-          </button>
-
-        )}
-
-      </div>
-
-      {/* LIVE */}
-      <div className="flex gap-5 mt-6">
 
         <button
           onClick={
@@ -623,7 +410,6 @@ function AudioUI({ session }) {
     </div>
 
   );
-
 }
 
 export default AudioUI;

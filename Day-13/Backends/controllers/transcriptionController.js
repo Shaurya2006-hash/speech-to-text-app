@@ -1,46 +1,33 @@
 import fs from "fs";
+import { convertSpeechToText } from "../services/whisperService.js";
+import { supabase } from "../config/supabaseClient.js";
 
-import {
-  convertSpeechToText
-} from "../services/whisperService.js";
-
-import {
-  supabase
-} from "../config/supabaseClient.js";
-
-export const transcribeAudio =
-async (req, res) => {
-
+// ==========================================
+// TRANSCRIBE AUDIO
+// ==========================================
+export const transcribeAudio = async (req, res) => {
   try {
 
     if (!req.file) {
-
       return res.status(400).json({
         success: false,
         message: "No audio file uploaded",
       });
-
     }
 
     const { user_id } = req.body;
 
     if (!user_id) {
-
       return res.status(401).json({
         success: false,
         message: "User not found",
       });
-
     }
 
     const filePath = req.file.path;
 
     console.log("📁 File Path:", filePath);
-
-    console.log(
-      "📁 File Exists:",
-      fs.existsSync(filePath)
-    );
+    console.log("📁 File Exists:", fs.existsSync(filePath));
 
     const transcription =
       await convertSpeechToText(filePath);
@@ -51,35 +38,23 @@ async (req, res) => {
         .insert([
           {
             user_id,
-            file_name:
-              req.file.originalname,
-            transcription_text:
-              transcription,
+            file_name: req.file.originalname,
+            transcription_text: transcription,
           },
         ])
         .select();
 
     if (error) {
-
-      console.log(
-        "❌ Supabase Error:",
-        error
-      );
+      console.log("❌ Supabase Error:", error);
 
       return res.status(500).json({
         success: false,
-        message:
-          "Failed to save transcription",
+        message: "Failed to save transcription",
       });
-
     }
 
-    if (
-      fs.existsSync(filePath)
-    ) {
-
+    if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
-
     }
 
     res.status(200).json({
@@ -90,50 +65,42 @@ async (req, res) => {
 
   } catch (error) {
 
-    console.log(
-      "❌ Controller Error:",
-      error
-    );
+    console.log("❌ Controller Error:", error);
 
     res.status(500).json({
       success: false,
-      message:
-        error.message,
+      message: error.message,
     });
 
   }
-
 };
 
-export const getTranscriptions =
-async (req, res) => {
+// ==========================================
+// GET HISTORY
+// ==========================================
+export const getTranscriptions = async (
+  req,
+  res
+) => {
 
   try {
 
-    const { user_id } =
-      req.query;
+    const { user_id } = req.query;
 
-    const {
-      data,
-      error
-    } = await supabase
-      .from("transcriptions")
-      .select("*")
-      .eq("user_id", user_id)
-      .order(
-        "created_at",
-        {
+    const { data, error } =
+      await supabase
+        .from("transcriptions")
+        .select("*")
+        .eq("user_id", user_id)
+        .order("created_at", {
           ascending: false,
-        }
-      );
+        });
 
     if (error) {
-
       return res.status(500).json({
         success: false,
         message: error.message,
       });
-
     }
 
     res.status(200).json({
@@ -151,5 +118,57 @@ async (req, res) => {
     });
 
   }
+};
 
+// ==========================================
+// SAVE LIVE TRANSCRIPTION
+// ==========================================
+export const saveLiveTranscription =
+async (req, res) => {
+
+  try {
+
+    const {
+      user_id,
+      transcription_text,
+    } = req.body;
+
+    if (!user_id) {
+      return res.status(401).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const { error } =
+      await supabase
+        .from("transcriptions")
+        .insert([
+          {
+            user_id,
+            file_name: "Live Recording",
+            transcription_text,
+          },
+        ]);
+
+    if (error) {
+      return res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Live transcription saved",
+    });
+
+  } catch (error) {
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+
+  }
 };

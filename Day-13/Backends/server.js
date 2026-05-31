@@ -12,7 +12,6 @@ app.use(express.json());
 // Create uploads folder automatically
 if (!fs.existsSync("uploads")) {
   fs.mkdirSync("uploads", { recursive: true });
-  console.log("✅ Uploads folder created");
 }
 
 app.get("/", (req, res) => {
@@ -24,5 +23,5 @@ app.use("/api", transcriptionRoutes);
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
