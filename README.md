@@ -13,10 +13,6 @@ The project combines frontend development, backend APIs, authentication, databas
 * Real-time speech transcription using Browser SpeechRecognition API
 * Instant text updates while speaking
 
-## Audio Recording
-
-* Record audio directly from the browser using MediaRecorder API
-
 ## Audio File Upload
 
 * Upload supported audio files for transcription
@@ -186,18 +182,6 @@ Use Cases:
 
 ---
 
-## Audio Recording
-
-The MediaRecorder API records audio directly from the browser.
-
-Recorded audio is:
-
-1. Converted into audio blob
-2. Sent to backend using Axios
-3. Processed by backend APIs
-
----
-
 ## File Upload Validation
 
 The backend validates:
@@ -307,11 +291,11 @@ Backend follows modular architecture for:
 
 ## Frontend Deployment
 
-* Vercel / Netlify
+* Netlify
 
 ## Backend Deployment
 
-* Render / Railway
+* Render 
 
 ---
 
@@ -366,16 +350,17 @@ The project provided practical experience in real-world development workflows, d
 
 # Author
 
-[Your Name]
+Shaurya Aggarwal 
 
 ---
 
 # GitHub Repository
 
-Add your repository link here.
+https://github.com/Shaurya2006-hash/speech-to-text-app
 
 ---
 
 # Live Demo
 
-Add your deployed project link here.
+Frontend:https://animated-alpaca-dbe0b8.netlify.app
+Backend:https://speech-to-text-app-y4la.onrender.com/
