@@ -1,10 +1,12 @@
 import fs from "fs";
 
-import { convertSpeechToText }
-from "../services/whisperService.js";
+import {
+  convertSpeechToText
+} from "../services/whisperService.js";
 
-import { supabase }
-from "../config/supabaseClient.js";
+import {
+  supabase
+} from "../config/supabaseClient.js";
 
 export const transcribeAudio =
 async (req, res) => {
@@ -15,32 +17,33 @@ async (req, res) => {
 
       return res.status(400).json({
         success: false,
-        message:
-          "No audio file uploaded",
+        message: "No audio file uploaded",
       });
 
     }
 
-    const { user_id } =
-      req.body;
+    const { user_id } = req.body;
 
     if (!user_id) {
 
       return res.status(401).json({
         success: false,
-        message:
-          "User not found",
+        message: "User not found",
       });
 
     }
 
-    const filePath =
-      req.file.path;
+    const filePath = req.file.path;
+
+    console.log("📁 File Path:", filePath);
+
+    console.log(
+      "📁 File Exists:",
+      fs.existsSync(filePath)
+    );
 
     const transcription =
-      await convertSpeechToText(
-        filePath
-      );
+      await convertSpeechToText(filePath);
 
     const { data, error } =
       await supabase
@@ -59,7 +62,7 @@ async (req, res) => {
     if (error) {
 
       console.log(
-        "Supabase Error:",
+        "❌ Supabase Error:",
         error
       );
 
@@ -71,10 +74,13 @@ async (req, res) => {
 
     }
 
-    fs.unlink(
-      filePath,
-      () => {}
-    );
+    if (
+      fs.existsSync(filePath)
+    ) {
+
+      fs.unlinkSync(filePath);
+
+    }
 
     res.status(200).json({
       success: true,
@@ -85,7 +91,7 @@ async (req, res) => {
   } catch (error) {
 
     console.log(
-      "Controller Error:",
+      "❌ Controller Error:",
       error
     );
 
@@ -113,10 +119,7 @@ async (req, res) => {
     } = await supabase
       .from("transcriptions")
       .select("*")
-      .eq(
-        "user_id",
-        user_id
-      )
+      .eq("user_id", user_id)
       .order(
         "created_at",
         {
@@ -128,24 +131,23 @@ async (req, res) => {
 
       return res.status(500).json({
         success: false,
-        message:
-          error.message,
+        message: error.message,
       });
 
     }
 
     res.status(200).json({
       success: true,
-      transcriptions:
-        data,
+      transcriptions: data,
     });
 
   } catch (error) {
 
+    console.log(error);
+
     res.status(500).json({
       success: false,
-      message:
-        error.message,
+      message: error.message,
     });
 
   }

@@ -1,5 +1,6 @@
 import express from "express";
 import multer from "multer";
+import fs from "fs";
 
 import {
   transcribeAudio,
@@ -8,15 +9,19 @@ import {
 
 const router = express.Router();
 
-// =========================
-// MULTER CONFIGURATION
-// =========================
 const storage = multer.diskStorage({
 
   destination: function (req, file, cb) {
 
-    cb(null, "uploads/");
+    const uploadPath = "uploads";
 
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, {
+        recursive: true,
+      });
+    }
+
+    cb(null, uploadPath);
   },
 
   filename: function (req, file, cb) {
@@ -30,9 +35,6 @@ const storage = multer.diskStorage({
 
 });
 
-// =========================
-// FILE VALIDATION
-// =========================
 const fileFilter = (req, file, cb) => {
 
   const allowedTypes = [
@@ -52,7 +54,7 @@ const fileFilter = (req, file, cb) => {
 
     cb(
       new Error(
-        "Invalid file type. Only MP3, WAV, WEBM, and OGG are allowed."
+        "Only MP3, WAV, WEBM and OGG files are allowed."
       ),
       false
     );
@@ -61,35 +63,20 @@ const fileFilter = (req, file, cb) => {
 
 };
 
-// =========================
-// MULTER SETUP
-// =========================
 const upload = multer({
-
   storage,
-
   fileFilter,
-
   limits: {
-
-    fileSize: 10 * 1024 * 1024, // 10MB
-
+    fileSize: 10 * 1024 * 1024,
   },
-
 });
 
-// =========================
-// POST → TRANSCRIBE AUDIO
-// =========================
 router.post(
   "/transcribe",
   upload.single("audio"),
   transcribeAudio
 );
 
-// =========================
-// GET → PREVIOUS TRANSCRIPTIONS
-// =========================
 router.get(
   "/transcriptions",
   getTranscriptions

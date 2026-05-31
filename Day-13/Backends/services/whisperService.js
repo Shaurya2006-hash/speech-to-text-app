@@ -2,50 +2,112 @@ import { exec } from "child_process";
 import fs from "fs";
 import path from "path";
 
-export const convertSpeechToText = (filePath) => {
-  return new Promise((resolve, reject) => {
+export const convertSpeechToText =
+(filePath) => {
 
-    const command =
-      `python -m whisper "${filePath}" --model base --output_format txt --output_dir uploads`;
+  return new Promise(
+    (resolve, reject) => {
 
-    exec(command, (error, stdout, stderr) => {
+      console.log(
+        "🎤 Received File:",
+        filePath
+      );
 
-      if (error) {
-        console.log("❌ Whisper Error:", error);
-        return reject(error);
-      }
+      console.log(
+        "🎤 Exists Before Whisper:",
+        fs.existsSync(filePath)
+      );
 
-      console.log("Whisper Output:", stdout);
-      console.log("Whisper Logs:", stderr);
+      const command =
+        `python -m whisper "${filePath}" --model base --output_format txt --output_dir uploads`;
 
-      const fileName = path.parse(filePath).name;
+      exec(
+        command,
+        (
+          error,
+          stdout,
+          stderr
+        ) => {
 
-      const txtPath =
-        path.join(
-          "uploads",
-          `${fileName}.txt`
-        );
+          if (error) {
 
-      if (!fs.existsSync(txtPath)) {
-        return reject(
-          new Error(
-            `Transcription file not found: ${txtPath}`
-          )
-        );
-      }
+            console.log(
+              "❌ Whisper Error:",
+              error
+            );
 
-      fs.readFile(
-        txtPath,
-        "utf8",
-        (err, textData) => {
+            console.log(
+              "❌ STDERR:",
+              stderr
+            );
 
-          if (err) {
-            return reject(err);
+            return reject(error);
+
           }
 
-          resolve(textData);
+          console.log(
+            "✅ Whisper Output:",
+            stdout
+          );
+
+          console.log(
+            "📝 Whisper Logs:",
+            stderr
+          );
+
+          const fileName =
+            path.parse(
+              filePath
+            ).name;
+
+          const txtPath =
+            path.join(
+              "uploads",
+              `${fileName}.txt`
+            );
+
+          console.log(
+            "TXT PATH:",
+            txtPath
+          );
+
+          if (
+            !fs.existsSync(
+              txtPath
+            )
+          ) {
+
+            return reject(
+              new Error(
+                `Transcription file not found: ${txtPath}`
+              )
+            );
+
+          }
+
+          fs.readFile(
+            txtPath,
+            "utf8",
+            (
+              err,
+              textData
+            ) => {
+
+              if (err) {
+
+                return reject(err);
+
+              }
+
+              resolve(textData);
+
+            }
+          );
+
         }
       );
-    });
-  });
+
+    }
+  );
+
 };
